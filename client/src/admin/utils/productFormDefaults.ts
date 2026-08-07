@@ -1,0 +1,53 @@
+import type { Product, ProductFormValues } from "../types/product";
+
+export const emptyProductFormValues: ProductFormValues = {
+  name: "",
+  category: "",
+  brand: "",
+  price: "",
+  mrp: "",
+  offer_percentage: "",
+  processor: "",
+  ram: "",
+  storage: "",
+  graphics: "",
+  display_size: "",
+  operating_system: "",
+  warranty: "",
+  description: "",
+  specifications: [],
+  highlights: [],
+  featured: false,
+  latest: false,
+  availability: "in_stock",
+  status: "active",
+  image_url: null,
+  gallery_images: [],
+};
+
+export function productToFormValues(product: Product): ProductFormValues {
+  return {
+    name: product.name,
+    category: product.category,
+    brand: product.brand,
+    price: product.price,
+    mrp: product.mrp,
+    offer_percentage: product.offer_percentage,
+    processor: product.processor ?? "",
+    ram: product.ram ?? "",
+    storage: product.storage ?? "",
+    graphics: product.graphics ?? "",
+    display_size: product.display_size ?? "",
+    operating_system: product.operating_system ?? "",
+    warranty: product.warranty ?? "",
+    description: product.description ?? "",
+    specifications: product.specifications ?? [],
+    highlights: (product.highlights ?? []).map((value) => ({ value })),
+    featured: product.featured,
+    latest: product.latest,
+    availability: product.availability,
+    status: product.status,
+    image_url: product.image_url,
+    gallery_images: product.gallery_images ?? [],
+  };
+}
