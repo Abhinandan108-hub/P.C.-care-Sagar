@@ -1,5 +1,5 @@
 import imageCompression from "browser-image-compression";
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 
 const BUCKET = "products";
 const MAX_SIZE_MB = 1;
@@ -40,7 +40,7 @@ export async function uploadProductImage(
   const compressed = await compressIfNeeded(file);
   const path = `${folder}/${randomFileName(file.name)}`;
 
-  const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+  const { error } = await adminClient.storage.from(BUCKET).upload(path, compressed, {
     cacheControl: "3600",
     upsert: false,
     contentType: compressed.type || file.type,
@@ -48,7 +48,7 @@ export async function uploadProductImage(
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = adminClient.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
 

@@ -1,16 +1,9 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabaseClient";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { adminClient } from "../lib/adminClient";
 
 interface AuthContextValue {
-  session: Session | null;
-  user: User | null;
+  session: any | null;
+  user: any | null;
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -27,13 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    adminClient.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setSession(data.session);
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
+    const { data: listener } = adminClient.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
         setLoading(false);
@@ -48,19 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setError(null);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (signInError) {
-      setError(signInError.message);
-      return { error: signInError.message };
+    const result = await adminClient.auth.signInWithPassword({ email, password });
+    if (result.error) {
+      setError(result.error.message);
+      return { error: result.error.message };
     }
+
+    setSession(result.data.session);
     return { error: null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await adminClient.auth.signOut();
+    setSession(null);
   };
 
   const value: AuthContextValue = {

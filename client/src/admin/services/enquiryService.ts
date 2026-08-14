@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import type { Enquiry, EnquiryFilters } from "../types/enquiry";
 
 const TABLE = "enquiries";
@@ -9,7 +9,7 @@ export interface GetEnquiriesResult {
 }
 
 export async function getEnquiries(filters: EnquiryFilters): Promise<GetEnquiriesResult> {
-  let query = supabase.from(TABLE).select("*", { count: "exact" });
+  let query = adminClient.from(TABLE).select("*", { count: "exact" });
 
   if (filters.search.trim()) {
     const term = filters.search.trim().replace(/,/g, " ");
@@ -49,7 +49,7 @@ export async function getEnquiries(filters: EnquiryFilters): Promise<GetEnquirie
 export async function getAllEnquiriesForExport(
   filters: Omit<EnquiryFilters, "page" | "pageSize">
 ): Promise<Enquiry[]> {
-  let query = supabase.from(TABLE).select("*");
+  let query = adminClient.from(TABLE).select("*");
 
   if (filters.search.trim()) {
     const term = filters.search.trim().replace(/,/g, " ");
@@ -78,17 +78,17 @@ export async function getAllEnquiriesForExport(
 }
 
 export async function markEnquiryAsRead(id: string): Promise<void> {
-  const { error } = await supabase.from(TABLE).update({ status: "read" }).eq("id", id);
+  const { error } = await adminClient.from(TABLE).update({ status: "read" }).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteEnquiry(id: string): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq("id", id);
+  const { error } = await adminClient.from(TABLE).delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function getLatestEnquiries(limit = 5): Promise<Enquiry[]> {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .select("*")
     .order("created_at", { ascending: false })

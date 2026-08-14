@@ -4,6 +4,7 @@ import BusinessSolutions from "./BusinessSolutions";
 import Contact from "./Contact";
 import WhyDifferent from "./WhyDifferent";
 import Footer from "./Footer";
+import heroProducts from "../assets/main.jpg";
 
 const brandsList = [
   { slug: "hp", name: "HP" },
@@ -23,6 +24,31 @@ const brandsList = [
   { slug: "intel", name: "Intel" },
   { slug: "amd", name: "AMD" }
 ];
+
+const BRAND_ICON_SLUGS: Record<string, string | null> = {
+  hp: "hp",
+  dell: "dell",
+  lenovo: "lenovo",
+  apple: "apple",
+  asus: "asus",
+  acer: "acer",
+  msi: "msi",
+  canon: null,
+  epson: "epson",
+  brother: null,
+  samsung: "samsung",
+  lg: "lg",
+  tplink: "tplink",
+  logitech: "logitech",
+  intel: "intel",
+  amd: "amd",
+};
+
+function brandIconUrl(slug: string) {
+  const iconSlug = BRAND_ICON_SLUGS[slug];
+  if (!iconSlug) return null;
+  return `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${iconSlug}.svg`;
+}
 
 const categoriesList = [
   {
@@ -78,8 +104,9 @@ function BrandImage({
   style?: CSSProperties;
 }) {
   const [failed, setFailed] = useState(false);
-  
-  if (failed) {
+  const iconUrl = brandIconUrl(slug);
+
+  if (!iconUrl || failed) {
     if (showTextOnFallback) {
       return (
         <span className="font-sans font-extrabold text-[10px] uppercase text-gray-400 tracking-wider">
@@ -89,16 +116,19 @@ function BrandImage({
     }
     return null;
   }
-  
-  const colorPath = color ? `/${color}` : "";
+
+  const tintedStyle: CSSProperties = color
+    ? { ...style, opacity: 0.55, filter: "grayscale(1)" }
+    : (style ?? {});
+
   return (
     <img
-      src={`https://cdn.simpleicons.org/${slug}${colorPath}`}
+      src={iconUrl}
       alt={name}
       onError={() => setFailed(true)}
       referrerPolicy="no-referrer"
       className={className}
-      style={style}
+      style={tintedStyle}
     />
   );
 }
@@ -462,7 +492,7 @@ export default function App() {
               </svg>
             </button>
 
-            <a href="https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20a%20laptop." target="_blank" rel="noopener noreferrer" className="btn-whatsapp">
+            <a href="https://wa.me/919826828666?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20a%20laptop." target="_blank" rel="noopener noreferrer" className="btn-whatsapp">
               <svg viewBox="0 0 32 32" fill="currentColor">
                 <path d="M16.02 3C9.4 3 4 8.36 4 15c0 2.4.67 4.63 1.83 6.55L4 29l7.66-2c1.82.94 3.9 1.48 6.36 1.48 6.62 0 12-5.36 12-12S22.64 3 16.02 3zm0 21.86c-2.13 0-4.13-.6-5.83-1.63l-.42-.25-4.32 1.13 1.15-4.2-.27-.43C5.3 17.9 4.6 16.5 4.6 15c0-6.3 5.12-11.42 11.42-11.42S27.44 8.7 27.44 15 22.32 24.86 16.02 24.86zm6.28-8.6c-.34-.17-2-1-2.3-1.1-.31-.12-.53-.17-.76.17-.22.34-.87 1.1-1.07 1.32-.2.23-.4.26-.73.09-.34-.17-1.42-.52-2.7-1.66-1-.9-1.67-2-1.87-2.33-.2-.34-.02-.52.15-.69.15-.15.34-.4.5-.6.17-.2.22-.34.34-.57.11-.23.06-.43-.03-.6-.09-.17-.76-1.83-1.04-2.5-.27-.65-.55-.56-.76-.57l-.65-.01c-.22 0-.58.08-.89.43-.3.34-1.16 1.14-1.16 2.78s1.19 3.22 1.36 3.44c.17.23 2.34 3.58 5.68 5.02.79.34 1.4.55 1.89.7.79.25 1.51.22 2.08.13.63-.1 2-.82 2.28-1.6.28-.79.28-1.47.2-1.6-.08-.14-.31-.23-.65-.4z" />
               </svg>
@@ -570,118 +600,202 @@ export default function App() {
           <a href="#why-different" className={`m-link ${activeSection === "why-different" ? "active" : ""}`}>About Us</a>
         </div>
       </div>
-      <section className="hero-section" id="hero">
+      <section className="hero" id="hero">
         {/* Left: content on light background */}
         <div className="hero-content-col">
           <div className="hero-content">
             <span className="hero-eyebrow">P.C. Care · Authorised Technology Partner</span>
 
-            <h1 className="hero-headline">
-              Powering Businesses With <span className="grad">Premium Technology</span>
-            </h1>
+           <h1 className="hero-headline">
+  Powering Businesses With{" "}
+  <span className="grad">Premium Technology</span>
+</h1>
 
-            <p className="hero-tagline">Trusted Laptop Dealer &amp; IT Solutions Partner</p>
+<p className="hero-tagline">
+  Trusted Laptop Dealer &amp; IT Solutions Partner
+</p>
 
-            <p className="hero-sub">
-              Business Laptops<span className="sep">·</span>
-              Gaming Laptops<span className="sep">·</span>
-              Corporate IT Solutions<span className="sep">·</span>
-              Government Supply
-            </p>
+<p className="hero-sub">
+  Business Laptops<span className="sep">·</span>
+  Gaming Laptops<span className="sep">·</span>
+  Corporate IT Solutions<span className="sep">·</span>
+  Government Supply
+</p>
 
-            <div className="hero-location">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" stroke="currentColor" strokeWidth="1.8" />
-                <circle cx="12" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-              Serving customers across Madhya Pradesh
-            </div>
+<div className="hero-location">
+  <svg viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <circle
+      cx="12"
+      cy="9"
+      r="2.4"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+  </svg>
 
-            <div className="hero-ctas">
-              <a href="#products" className="hero-btn-primary">
-                Explore Products
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </a>
-              <a href="#quote" className="hero-btn-glass">Get a Free Quote</a>
-              <a href="https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20a%20laptop." target="_blank" rel="noopener noreferrer" className="hero-btn-whatsapp">
-                <svg viewBox="0 0 32 32" fill="currentColor">
-                  <path d="M16.02 3C9.4 3 4 8.36 4 15c0 2.4.67 4.63 1.83 6.55L4 29l7.66-2c1.82.94 3.9 1.48 6.36 1.48 6.62 0 12-5.36 12-12S22.64 3 16.02 3zm0 21.86c-2.13 0-4.13-.6-5.83-1.63l-.42-.25-4.32 1.13 1.15-4.2-.27-.43C5.3 17.9 4.6 16.5 4.6 15c0-6.3 5.12-11.42 11.42-11.42S27.44 8.7 27.44 15 22.32 24.86 16.02 24.86zm6.28-8.6c-.34-.17-2-1-2.3-1.1-.31-.12-.53-.17-.76.17-.22.34-.87 1.1-1.07 1.32-.2.23-.4.26-.73.09-.34-.17-1.42-.52-2.7-1.66-1-.9-1.67-2-1.87-2.33-.2-.34-.02-.52.15-.69.15-.15.34-.4.5-.6.17-.2.22-.34.34-.57.11-.23.06-.43-.03-.6-.09-.17-.76-1.83-1.04-2.5-.27-.65-.55-.56-.76-.57l-.65-.01c-.22 0-.58.08-.89.43-.3.34-1.16 1.14-1.16 2.78s1.19 3.22 1.36 3.44c.17.23 2.34 3.58 5.68 5.02.79.34 1.4.55 1.89.7.79.25 1.51.22 2.08.13.63-.1 2-.82 2.28-1.6.28-.79.28-1.47.2-1.6-.08-.14-.31-.23-.65-.4z" />
-                </svg>
-                WhatsApp Enquiry
-              </a>
-            </div>
+  Serving customers across Madhya Pradesh
+</div>
 
-            <div className="trust-row">
-              <div className="trust-item">
-                <div className="ti-icon">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 9l8-5 8 5-8 5-8-5zM4 9v6l8 5 8-5V9" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="ti-text"><b>20+</b><span>Global Brands</span></div>
-              </div>
-              <div className="trust-item">
-                <div className="ti-icon">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M4 21V9l8-5 8 5v12M9 21v-6h6v6" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="ti-text"><b>Govt. &amp; Corporate</b><span>Approved Supply</span></div>
-              </div>
-              <div className="trust-item">
-                <div className="ti-icon">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="ti-text"><b>Fast Delivery</b><span>Across MP</span></div>
-              </div>
-              <div className="trust-item">
-                <div className="ti-icon">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M12 3l2.3 4.7 5.2.7-3.75 3.65.9 5.15L12 14.7l-4.65 2.5.9-5.15L4.5 8.4l5.2-.7L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="ti-text"><b>Since 2005</b><span>Trusted Legacy</span></div>
-              </div>
-            </div>
-          </div>
+<div className="hero-ctas">
+  <a href="#products" className="hero-btn-primary">
+    Explore Products
+
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </a>
+
+  <a href="#quote" className="hero-btn-glass">
+    Get a Free Quote
+  </a>
+
+  <a
+    href="https://wa.me/919826828666?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20a%20laptop."
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hero-btn-whatsapp"
+  >
+    <svg viewBox="0 0 32 32" fill="currentColor">
+      <path d="M16.02 3C9.4 3 4 8.36 4 15c0 2.4.67 4.63 1.83 6.55L4 29l7.66-2c1.82.94 3.9 1.48 6.36 1.48 6.62 0 12-5.36 12-12S22.64 3 16.02 3zm0 21.86c-2.13 0-4.13-.6-5.83-1.63l-.42-.25-4.32 1.13 1.15-4.2-.27-.43C5.3 17.9 4.6 16.5 4.6 15c0-6.3 5.12-11.42 11.42-11.42S27.44 8.7 27.44 15 22.32 24.86 16.02 24.86zm6.28-8.6c-.34-.17-2-1-2.3-1.1-.31-.12-.53-.17-.76.17-.22.34-.87 1.1-1.07 1.32-.2.23-.4.26-.73.09-.34-.17-1.42-.52-2.7-1.66-1-.9-1.67-2-1.87-2.33-.2-.34-.02-.52.15-.69.15-.15.34-.4.5-.6.17-.2.22-.34.34-.57.11-.23.06-.43-.03-.6-.09-.17-.76-1.83-1.04-2.5-.27-.65-.55-.56-.76-.57l-.65-.01c-.22 0-.58.08-.89.43-.3.34-1.16 1.14-1.16 2.78s1.19 3.22 1.36 3.44c.17.23 2.34 3.58 5.68 5.02.79.34 1.4.55 1.89.7.79.25 1.51.22 2.08.13.63-.1 2-.82 2.28-1.6.28-.79.28-1.47.2-1.6-.08-.14-.31-.23-.65-.4z" />
+    </svg>
+
+    WhatsApp Enquiry
+  </a>
+</div>
+
+<div className="trust-row">
+  <div className="trust-item">
+    <div className="ti-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 9l8-5 8 5-8 5-8-5zM4 9v6l8 5 8-5V9"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+
+    <div className="ti-text">
+      <b>20+</b>
+      <span>Global Brands</span>
+    </div>
+  </div>
+
+  <div className="trust-item">
+    <div className="ti-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 21V9l8-5 8 5v12M9 21v-6h6v6"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+
+    <div className="ti-text">
+      <b>Govt. &amp; Corporate</b>
+      <span>Approved Supply</span>
+    </div>
+  </div>
+
+  <div className="trust-item">
+    <div className="ti-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+
+    <div className="ti-text">
+      <b>Fast Delivery</b>
+      <span>Across MP</span>
+    </div>
+  </div>
+
+  <div className="trust-item">
+    <div className="ti-icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 3l2.3 4.7 5.2.7-3.75 3.65.9 5.15L12 14.7l-4.65 2.5.9-5.15L4.5 8.4l5.2-.7L12 3z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+
+    <div className="ti-text">
+      <b>Since 2005</b>
+      <span>Trusted Legacy</span>
+    </div>
+  </div>
+</div>
+
         </div>
+</div>
 
-        {/* Right: single product photo panel */}
-        <div className="hero-media-col" ref={mediaColRef}>
-          <div className="blob blob-a"></div>
-          <div className="blob blob-b"></div>
+{/* Right: Product Image */}
+<div className="hero-media-col" ref={mediaColRef}>
+  <div className="blob blob-a"></div>
+  <div className="blob blob-b"></div>
 
-          <div className={`hero-media ${hasImageError ? "fallback" : ""}`} id="heroMedia">
-            <img
-              ref={imgRef}
-              src="https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=1600&q=85"
-              alt="HP laptop, desktop monitor, printer, tablet and phone lineup on a desk"
-              loading="eager"
-              onError={() => setHasImageError(true)}
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <div className="hero-media-feather"></div>
-          <div className="hero-media-vignette"></div>
-          <div className="hero-media-sheen"></div>
+  <div
+    className={`hero-media ${hasImageError ? "fallback" : ""}`}
+    id="heroMedia"
+  >
+    <img
+      ref={imgRef}
+      src={heroProducts}
+      alt="PC Care Sagar products"
+      loading="eager"
+      onError={() => setHasImageError(true)}
+    />
+  </div>
 
-          <div className="media-caption">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-            </svg>
-            Laptops · Desktops · Printers · All-in-Ones
-          </div>
-        </div>
+  <div className="hero-media-feather"></div>
+  <div className="hero-media-vignette"></div>
+  <div className="hero-media-sheen"></div>
 
-        <div className="scroll-indicator">
-          <div className="si-pill"><div className="si-dot"></div></div>
-          <span>Scroll</span>
-        </div>
-      </section>
+  <div className="media-caption">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+
+    Laptops · Desktops · Printers · All-in-Ones
+  </div>
+</div>
+
+<div className="scroll-indicator">
+  <div className="si-pill">
+    <div className="si-dot"></div>
+  </div>
+
+  <span>Scroll</span>
+</div>
+
+</section>
 
       {/* ============ TRUSTED GLOBAL TECHNOLOGY BRANDS + CATEGORIES ============ */}
       <section className="brands-section" id="brands">

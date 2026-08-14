@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import { slugify } from "../utils/slugify";
 import type {
   Category,
@@ -20,7 +20,7 @@ async function withProductCounts(
 ): Promise<Category[]> {
   const counts = await Promise.all(
     rows.map((row) =>
-      supabase
+      adminClient
         .from("products")
         .select("*", { count: "exact", head: true })
         .eq("category", row.name)
@@ -37,7 +37,7 @@ async function withProductCounts(
 export async function getCategories(
   filters: CategoryFilters
 ): Promise<GetCategoriesResult> {
-  let query = supabase.from(TABLE).select("*", { count: "exact" });
+  let query = adminClient.from(TABLE).select("*", { count: "exact" });
 
   if (filters.search.trim()) {
     const term = filters.search.trim().replace(/,/g, " ");
@@ -64,7 +64,7 @@ export async function getCategories(
 
 /** Simple id/name list for dropdowns (e.g. brand category mapping). */
 export async function getAllCategories(): Promise<NamedOption[]> {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .select("id, name")
     .order("display_order", { ascending: true })
@@ -75,7 +75,7 @@ export async function getAllCategories(): Promise<NamedOption[]> {
 }
 
 export async function getCategoryById(id: string): Promise<Category> {
-  const { data, error } = await supabase.from(TABLE).select("*").eq("id", id).single();
+  const { data, error } = await adminClient.from(TABLE).select("*").eq("id", id).single();
   if (error) throw error;
   const [withCount] = await withProductCounts([data as Omit<Category, "product_count">]);
   return withCount;
@@ -89,7 +89,7 @@ async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
   // Keep trying until we find a slug that isn't already taken by another row.
   // Loop is bounded by the number of existing conflicting rows, never infinite.
   for (;;) {
-    let query = supabase.from(TABLE).select("id").eq("slug", candidate).limit(1);
+    let query = adminClient.from(TABLE).select("id").eq("slug", candidate).limit(1);
     if (ignoreId) query = query.neq("id", ignoreId);
     const { data, error } = await query;
     if (error) throw error;
@@ -114,7 +114,7 @@ export async function createCategory(values: CategoryFormValues): Promise<Catego
   const payload = toDbPayload(values);
   const slug = await uniqueSlug(payload.slug || payload.name);
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .insert({ ...payload, slug })
     .select("*")
@@ -132,7 +132,7 @@ export async function updateCategory(
   const payload = toDbPayload(values);
   const slug = await uniqueSlug(payload.slug || payload.name, id);
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .update({ ...payload, slug })
     .eq("id", id)
@@ -152,13 +152,13 @@ function pathFromPublicUrl(url: string): string | null {
 }
 
 export async function deleteCategory(category: Category): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq("id", category.id);
+  const { error } = await adminClient.from(TABLE).delete().eq("id", category.id);
   if (error) throw error;
 
   if (category.image_url) {
     const path = pathFromPublicUrl(category.image_url);
     if (path) {
-      const { error: storageError } = await supabase.storage.from(BUCKET).remove([path]);
+      const { error: storageError } = await adminClient.storage.from(BUCKET).remove([path]);
       if (storageError) {
         // eslint-disable-next-line no-console
         console.warn("Category image could not be removed from storage:", storageError.message);

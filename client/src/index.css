@@ -412,40 +412,39 @@ button {
 /* ============ RIGHT: PRODUCT PHOTO PANEL ============ */
 .hero-media-col {
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(160deg, #eef1f8 0%, #e6ebf6 100%);
+  overflow: visible;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-media-col .blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: .5;
-  animation: softDrift 20s ease-in-out infinite;
+  display: none;
 }
 
 .hero-media-col .blob-a {
-  width: 420px;
-  height: 420px;
-  top: -120px;
-  right: -100px;
-  background: radial-gradient(circle, rgba(47, 93, 255, 0.20), transparent 70%);
+  display: none;
 }
 
 .hero-media-col .blob-b {
-  width: 360px;
-  height: 360px;
-  bottom: -140px;
-  left: -100px;
-  background: radial-gradient(circle, rgba(0, 194, 168, 0.18), transparent 70%);
-  animation-delay: 2s;
+  display: none;
 }
 
 .hero-media {
+  /* keep the element anchored to the right side like before */
   position: absolute;
-  inset: 0;
+  top: 100px;
+  right: 100px;
+  width: min(44vw, 520px);
+  max-width: 520px;
+  aspect-ratio: 1 / 1;
   z-index: 1;
   overflow: hidden;
+  border-radius: 50%;
+  border: 10px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.18);
+  background: transparent;
 }
 
 .hero-media img {
@@ -455,6 +454,14 @@ button {
   object-position: center;
   display: block;
   animation: kenBurns 30s ease-in-out infinite alternate;
+}
+
+@media (max-width: 900px) {
+  .hero-media {
+    width: min(60vw, 320px);
+    top: 60px;
+    right: 40px;
+  }
 }
 
 .hero-media.fallback {
@@ -473,30 +480,14 @@ button {
   background: linear-gradient(90deg, #f6f7fb 0%, rgba(246, 247, 251, 0.55) 8%, transparent 22%);
 }
 
-.hero-media-vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: linear-gradient(0deg, rgba(10, 14, 26, 0.16) 0%, transparent 30%);
-}
-
+.hero-media-feather,
+.hero-media-vignette,
 .hero-media-sheen {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background: linear-gradient(120deg, transparent 40%, rgba(255, 255, 255, 0.16) 48%, rgba(255, 255, 255, 0.05) 54%, transparent 62%);
-  background-size: 260% 260%;
-  animation: sheenDrift 13s ease-in-out infinite;
-  mix-blend-mode: overlay;
-  pointer-events: none;
+  display: none !important;
 }
-
 .media-caption {
-  position: absolute;
-  left: 28px;
-  bottom: 28px;
   z-index: 4;
-  display: flex;
+  display: none; /* hide caption overlay on hero image */
   align-items: center;
   gap: 10px;
   padding: 11px 18px;
@@ -583,7 +574,31 @@ button {
   }
   .hero-media-col {
     order: 0;
-    height: 340px;
+    height: auto;
+    padding-top: 28px;
+  }
+  .hero-media {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: min(70vw, 380px);
+    margin: 0 auto;
+    border-radius: 28px;
+    border-width: 0;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
+  }
+  .hero-media img {
+    border-radius: 28px;
+  }
+  .hero-media-feather,
+  .hero-media-vignette,
+  .hero-media-sheen {
+    display: none;
+  }
+  .media-caption {
+    position: static;
+    margin: 18px auto 0;
+    display: flex;
   }
   .hero-media-feather {
     background: linear-gradient(0deg, #f6f7fb 0%, rgba(246, 247, 251, 0.5) 10%, transparent 26%);
@@ -2377,21 +2392,36 @@ button {
   font-family: 'Manrope', sans-serif;
 }
 
+/* =========================
+   SORT BY
+========================= */
+
 .sort-select {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .sort-trigger {
   display: flex;
   align-items: center;
   gap: 8px;
+
   padding: 9px 14px;
+
   border-radius: var(--radius-pill);
+
   font-size: 12.5px;
   color: var(--charcoal-soft);
+
   background: rgba(15, 18, 24, 0.04);
   border: 1px solid var(--line);
-  transition: border-color 250ms var(--ease), background 250ms var(--ease);
+
+  cursor: pointer;
+
+  transition:
+    border-color 250ms var(--ease),
+    background 250ms var(--ease);
 }
 
 .sort-trigger b {
@@ -2399,47 +2429,115 @@ button {
   font-family: 'Manrope', sans-serif;
 }
 
-.sort-select.open .sort-trigger,
 .sort-trigger:hover {
   border-color: rgba(47, 93, 255, 0.3);
   background: rgba(47, 93, 255, 0.06);
 }
 
+/* Hide original button when Sort By is open */
+
+.sort-select.open .sort-trigger {
+  display: none;
+}
+
+/* Horizontal Sort By menu */
+
 .sort-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 20;
-  min-width: 200px;
-  padding: 8px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid var(--line);
-  box-shadow: 0 20px 44px rgba(16, 20, 30, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 7px;
+
+  width: max-content;
+
+  padding: 0;
+  margin: 0;
+
+  background: transparent;
+  border: none;
+  box-shadow: none;
+
+  white-space: nowrap;
+
   animation: fadeUp 220ms var(--ease);
 }
 
+/* Sort by text */
+
+.sort-label {
+  font-size: 12px;
+  font-weight: 700;
+
+  color: var(--charcoal);
+
+  white-space: nowrap;
+}
+
+/* Dot */
+
+.sort-dot {
+  font-size: 13px;
+  line-height: 1;
+
+  color: #9ca3af;
+}
+
+/* Sort option buttons */
+
 .sort-option {
-  width: 100%;
-  text-align: left;
-  padding: 9px 12px;
-  border-radius: 9px;
-  font-size: 12.8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: auto;
+  min-width: auto;
+
+  padding: 7px 12px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
   font-weight: 600;
+
   color: var(--charcoal-soft);
-  transition: background 220ms var(--ease), color 220ms var(--ease);
+
+  background: rgba(15, 18, 24, 0.04);
+
+  border: 1px solid var(--line);
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition:
+    background 220ms var(--ease),
+    border-color 220ms var(--ease),
+    color 220ms var(--ease),
+    transform 220ms var(--ease);
 }
 
 .sort-option:hover {
   background: rgba(47, 93, 255, 0.07);
+  border-color: rgba(47, 93, 255, 0.25);
+  color: var(--blue-deep);
 }
+
+.sort-option:active {
+  transform: scale(0.97);
+}
+
+/* Selected option */
 
 .sort-option.active {
   background: rgba(47, 93, 255, 0.12);
+
+  border-color: rgba(47, 93, 255, 0.25);
+
   color: var(--blue-deep);
+
   font-weight: 800;
 }
-
 /* ---- Product grid ---- */
 .products-grid {
   display: grid;

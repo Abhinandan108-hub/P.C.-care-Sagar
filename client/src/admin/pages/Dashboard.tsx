@@ -13,7 +13,7 @@ import {
 import DashboardCard from "../components/DashboardCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import { getLatestEnquiries } from "../services/enquiryService";
 import type { DashboardStats } from "../types";
 import type { Product } from "../types/product";
@@ -48,10 +48,10 @@ export default function Dashboard() {
       setLoadingStats(true);
 
       const [products, categories, brands, enquiries] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact", head: true }),
-        supabase.from("categories").select("*", { count: "exact", head: true }),
-        supabase.from("brands").select("*", { count: "exact", head: true }),
-        supabase
+        adminClient.from("products").select("*", { count: "exact", head: true }),
+        adminClient.from("categories").select("*", { count: "exact", head: true }),
+        adminClient.from("brands").select("*", { count: "exact", head: true }),
+        adminClient
           .from("enquiries")
           .select("*", { count: "exact", head: true })
           .eq("status", "new"),
@@ -71,7 +71,7 @@ export default function Dashboard() {
     async function loadLists() {
       setLoadingLists(true);
       const [productsRes, enquiries] = await Promise.all([
-        supabase
+        adminClient
           .from("products")
           .select("*")
           .order("created_at", { ascending: false })

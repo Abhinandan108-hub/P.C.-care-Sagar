@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import type { Brand, BrandFilters, BrandFormValues } from "../types/brand";
 import type { NamedOption } from "../types/product";
 
@@ -31,7 +31,7 @@ function normalize(row: any): Brand {
 }
 
 export async function getBrands(filters: BrandFilters): Promise<GetBrandsResult> {
-  let query = supabase.from(TABLE).select(SELECT_WITH_CATEGORY, { count: "exact" });
+  let query = adminClient.from(TABLE).select(SELECT_WITH_CATEGORY, { count: "exact" });
 
   if (filters.search.trim()) {
     const term = filters.search.trim().replace(/,/g, " ");
@@ -62,13 +62,13 @@ export async function getBrands(filters: BrandFilters): Promise<GetBrandsResult>
 }
 
 export async function getAllBrands(): Promise<NamedOption[]> {
-  const { data, error } = await supabase.from(TABLE).select("id, name").order("name", { ascending: true });
+  const { data, error } = await adminClient.from(TABLE).select("id, name").order("name", { ascending: true });
   if (error) return [];
   return (data ?? []) as NamedOption[];
 }
 
 export async function getBrandById(id: string): Promise<Brand> {
-  const { data, error } = await supabase.from(TABLE).select(SELECT_WITH_CATEGORY).eq("id", id).single();
+  const { data, error } = await adminClient.from(TABLE).select(SELECT_WITH_CATEGORY).eq("id", id).single();
   if (error) throw error;
   return normalize(data);
 }
@@ -87,7 +87,7 @@ function toDbPayload(values: BrandFormValues) {
 
 export async function createBrand(values: BrandFormValues): Promise<Brand> {
   const payload = toDbPayload(values);
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .insert(payload)
     .select(SELECT_WITH_CATEGORY)
@@ -99,7 +99,7 @@ export async function createBrand(values: BrandFormValues): Promise<Brand> {
 
 export async function updateBrand(id: string, values: BrandFormValues): Promise<Brand> {
   const payload = toDbPayload(values);
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .update(payload)
     .eq("id", id)
@@ -118,14 +118,14 @@ function pathFromPublicUrl(url: string): string | null {
 }
 
 export async function deleteBrand(brand: Brand): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq("id", brand.id);
+  const { error } = await adminClient.from(TABLE).delete().eq("id", brand.id);
   if (error) throw error;
 
   const images = [brand.logo_url, brand.image_url].filter((u): u is string => Boolean(u));
   const paths = images.map(pathFromPublicUrl).filter((p): p is string => Boolean(p));
 
   if (paths.length > 0) {
-    const { error: storageError } = await supabase.storage.from(BUCKET).remove(paths);
+    const { error: storageError } = await adminClient.storage.from(BUCKET).remove(paths);
     if (storageError) {
       // eslint-disable-next-line no-console
       console.warn("Brand images could not be removed from storage:", storageError.message);

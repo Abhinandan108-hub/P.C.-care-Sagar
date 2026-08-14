@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { KeyRound, Mail, LogOut, Moon, ShieldCheck, Sun } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
@@ -21,7 +21,7 @@ export default function Settings() {
     }
 
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await adminClient.auth.updateUser({ password: newPassword });
     setSaving(false);
 
     if (error) {

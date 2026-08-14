@@ -1,8 +1,37 @@
 import { Request, Response } from "express";
 import Enquiry from "../models/Enquiry";
+import { sendEmail } from "../utils/mail";
 
 export async function createEnquiry(req: Request, res: Response) {
   const enquiry = await Enquiry.create(req.body);
+
+  const notificationEmail = process.env.ENQUIRY_NOTIFICATION_EMAIL || "pccaresagar@yahoo.com";
+  const subject = `New enquiry from ${enquiry.name}`;
+  const bodyLines = [
+    `Name: ${enquiry.name}`,
+    `Email: ${enquiry.email ?? "N/A"}`,
+    `Phone: ${enquiry.phone ?? "N/A"}`,
+    enquiry.company ? `Company: ${enquiry.company}` : "",
+    `Preferred contact via: ${enquiry.contactMethod ?? "N/A"}`,
+    `Subject: ${enquiry.subject ?? "N/A"}`,
+    `Message: ${enquiry.message}`,
+    enquiry.product_name ? `Product: ${enquiry.product_name}` : "",
+    enquiry.product_id ? `Product ID: ${enquiry.product_id}` : "",
+  ].filter(Boolean);
+
+  const text = bodyLines.join("\n");
+
+  try {
+    await sendEmail({
+      to: notificationEmail,
+      subject,
+      text,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to send enquiry notification email:", error);
+  }
+
   return res.status(201).json({ success: true, data: enquiry });
 }
 

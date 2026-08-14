@@ -16,6 +16,7 @@ import {
   Loader2,
   Briefcase
 } from "lucide-react";
+import { API_URL } from "./api/api";
 
 interface FormState {
   fullName: string;
@@ -63,6 +64,7 @@ export default function Contact() {
   const [shakeKey, setShakeKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -78,19 +80,47 @@ export default function Contact() {
     return next;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const next = validate();
     if (Object.keys(next).length > 0) {
       setErrors(next);
+      setSubmitError("Please fix the highlighted fields and try again.");
       setShakeKey((k) => k + 1);
       return;
     }
+
     setSubmitting(true);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/enquiries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.fullName,
+          phone: form.mobile,
+          email: form.email,
+          subject: form.category,
+          message: form.message,
+          company: form.company,
+          contactMethod: form.contactMethod,
+          product_name: form.category,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "Unable to send enquiry. Please try again later.");
+      }
+
       setSubmitted(true);
-    }, 1400);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to send enquiry. Please try again later.");
+      setShakeKey((k) => k + 1);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -297,6 +327,7 @@ export default function Contact() {
                       WhatsApp Now
                     </a>
                   </div>
+                  {submitError && <div className="form-error-message">{submitError}</div>}
                 </form>
               </>
             )}

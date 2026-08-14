@@ -203,8 +203,8 @@ function StatCounter({
 }
 
 export default function BusinessSolutions() {
-  const waLink = "https://wa.me/910000000000?text=Hi%2C%20I%27d%20like%20a%20custom%20IT%20solution%20for%20my%20business.";
-  const callLink = "tel:+910000000000";
+  const waLink = "https://wa.me/919826828666?text=Hi%2C%20I%27d%20like%20a%20custom%20IT%20solution%20for%20my%20business.";
+  const callLink = "tel:+919826828666";
 
   return (
     <section className="biz-section" id="business-solutions">

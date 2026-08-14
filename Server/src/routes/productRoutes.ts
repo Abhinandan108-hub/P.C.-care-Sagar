@@ -12,7 +12,7 @@ import { validateRequest } from "../middlewares/validate";
 
 const router = Router();
 
-router.get("/", authenticate, getProducts);
+router.get("/", getProducts);
 router.get("/:id", authenticate, getProductById);
 
 const productValidators = [

@@ -20,6 +20,7 @@ import {
   PackageCheck
 } from "lucide-react";
 import { products, productCategories, categoryBrandMap, filterGroups, sortOptions, type Product } from "./productsData";
+import { fetchPublicProducts } from "./api/api";
 
 function ProductImage({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -54,17 +55,34 @@ function FilterSection({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+
   return (
     <div className={`filter-block ${open ? "is-open" : ""}`}>
-      <button type="button" className="filter-block-head" onClick={() => setOpen((o) => !o)}>
+      <button
+        type="button"
+        className="filter-block-head"
+        onClick={() => setOpen((o) => !o)}
+      >
         <span className="fb-title">
           {icon}
           {title}
         </span>
-        <ChevronDown className="fb-chev" size={16} />
+
+        <ChevronDown
+          className="fb-chev"
+          size={16}
+        />
       </button>
-      <div className="filter-block-body" style={{ maxHeight: open ? "600px" : "0px" }}>
-        <div className="filter-block-inner">{children}</div>
+
+      <div
+        className="filter-block-body"
+        style={{
+          maxHeight: open ? "5000px" : "0px"
+        }}
+      >
+        <div className="filter-block-inner">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -98,6 +116,18 @@ const badgeIcon: Record<string, ReactNode> = {
   "Special Offer": <Star size={11} />
 };
 
+function uniqueBadges(offers: string[], tags: string[], limit?: number) {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const label of [...offers, ...tags]) {
+    if (seen.has(label)) continue;
+    seen.add(label);
+    merged.push(label);
+    if (limit !== undefined && merged.length >= limit) break;
+  }
+  return merged;
+}
+
 export default function FeaturedProducts() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -116,6 +146,7 @@ export default function FeaturedProducts() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [remoteProducts, setRemoteProducts] = useState<Product[] | null>(null);
   const skeletonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggle = (setter: Dispatch<SetStateAction<string[]>>, value: string) => {
@@ -133,6 +164,24 @@ export default function FeaturedProducts() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
+
+  // fetch products from backend (fallback to local `products` if request fails or DB is empty)
+  useEffect(() => {
+    let mounted = true;
+    const loadProducts = async () => {
+      try {
+        const items = await fetchPublicProducts();
+        if (mounted && items.length > 0) setRemoteProducts(items);
+      } catch {
+        // network or server error — keep using local data
+      }
+    };
+
+    loadProducts();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (category && categoryBrandMap[category]) {
@@ -156,8 +205,10 @@ export default function FeaturedProducts() {
 
   const availableBrands = category ? categoryBrandMap[category] || [] : Array.from(new Set(Object.values(categoryBrandMap).flat()));
 
+  const sourceProducts = remoteProducts ?? products;
+
   const filtered = useMemo(() => {
-    let list = products.filter((p) => {
+    let list = sourceProducts.filter((p) => {
       if (category && p.category !== category) return false;
       if (brands.length && !brands.includes(p.brand)) return false;
       if (p.price > maxPrice) return false;
@@ -177,23 +228,87 @@ export default function FeaturedProducts() {
       return true;
     });
 
-    switch (sortBy) {
-      case "Price Low to High":
-        list = [...list].sort((a, b) => a.price - b.price);
-        break;
-      case "Price High to Low":
-        list = [...list].sort((a, b) => b.price - a.price);
-        break;
-      case "Popularity":
-        list = [...list].sort((a, b) => b.rating - a.rating);
-        break;
-      case "Newest":
-      case "Latest":
-        list = [...list].sort((a, b) => (b.tags.includes("Latest") ? 1 : 0) - (a.tags.includes("Latest") ? 1 : 0));
-        break;
-      default:
-        break;
-    }
+    <div className={`sort-select ${isSortOpen ? "open" : ""}`}>
+  {!isSortOpen ? (
+    <button
+      type="button"
+      className="sort-trigger"
+      onClick={() => setIsSortOpen(true)}
+    >
+      Sort By: <b>{sortBy}</b>
+      <ChevronDown size={14} />
+    </button>
+  ) : (
+    <div
+      className="sort-inline"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        flexWrap: "nowrap"
+      }}
+    >
+      <span
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          whiteSpace: "nowrap"
+        }}
+      >
+        Sort by:
+      </span>
+
+      <span
+        style={{
+          fontSize: "10px",
+          color: "#9ca3af"
+        }}
+      >
+        •
+      </span>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Price Low to High" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Price Low to High");
+          setIsSortOpen(false);
+        }}
+      >
+        Price LtoH
+      </button>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Price High to Low" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Price High to Low");
+          setIsSortOpen(false);
+        }}
+      >
+        Price HtoL
+      </button>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Today's Deal" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Today's Deal");
+          setIsSortOpen(false);
+        }}
+      >
+        Today's Deal
+      </button>
+    </div>
+  )}
+</div>
+
     return list;
   }, [category, brands, maxPrice, processor, ram, storage, graphics, os, screen, availability, offer, search, sortBy]);
 
@@ -216,128 +331,827 @@ export default function FeaturedProducts() {
     (category ? 1 : 0) + brands.length + processor.length + ram.length + storage.length + graphics.length + os.length + screen.length + availability.length + offer.length;
 
   const renderFilters = () => (
-    <>
-      <div className="filter-panel-top">
-        <span className="fp-title">
-          <SlidersHorizontal size={16} />
-          Filters
-        </span>
-        {activeFilterCount > 0 && (
-          <button type="button" className="fp-clear" onClick={resetFilters}>
-            <RotateCcw size={12} /> Reset
+  <>
+    <div className="filter-panel-top">
+      <span className="fp-title">
+        <SlidersHorizontal size={16} />
+        Filters
+      </span>
+
+      {activeFilterCount > 0 && (
+        <button
+          type="button"
+          className="fp-clear"
+          onClick={resetFilters}
+        >
+          <RotateCcw size={12} />
+          Reset
+        </button>
+      )}
+    </div>
+
+    <FilterSection
+  title="New Arrival"
+  icon={<Sparkles size={14} />}
+  defaultOpen
+>
+  <div className="pill-wrap">
+    <CheckPill
+      label="Latest Arrival"
+      active={offer.includes("Latest Arrival")}
+      onClick={() => toggle(setOffer, "Latest Arrival")}
+    />
+
+    <CheckPill
+      label="New Launch"
+      active={offer.includes("New Launch")}
+      onClick={() => toggle(setOffer, "New Launch")}
+    />
+
+    <CheckPill
+      label="Trending Products"
+      active={offer.includes("Trending Products")}
+      onClick={() => toggle(setOffer, "Trending Products")}
+    />
+
+    <CheckPill
+      label="Recently Added"
+      active={offer.includes("Recently Added")}
+      onClick={() => toggle(setOffer, "Recently Added")}
+    />
+
+    <CheckPill
+      label="This Month Launch"
+      active={offer.includes("This Month Launch")}
+      onClick={() => toggle(setOffer, "This Month Launch")}
+    />
+  </div>
+</FilterSection>
+
+    <FilterSection
+      title="Category"
+      icon={<Layers size={14} />}
+      defaultOpen
+    >
+      <div className="cat-filter-list">
+        <button
+          type="button"
+          className={`cat-filter-item ${
+            !category ? "active" : ""
+          }`}
+          onClick={() => setCategory(null)}
+        >
+          All Categories
+        </button>
+
+        {productCategories.map((c) => (
+          <button
+            type="button"
+            key={c}
+            className={`cat-filter-item ${
+              category === c ? "active" : ""
+            }`}
+            onClick={() => setCategory(c)}
+          >
+            {c}
           </button>
-        )}
+        ))}
       </div>
+    </FilterSection>
 
-      <FilterSection title="Category" defaultOpen icon={<Layers size={14} />}>
-        <div className="cat-filter-list">
-          <button type="button" className={`cat-filter-item ${!category ? "active" : ""}`} onClick={() => setCategory(null)}>
-            All Categories
-          </button>
-          {productCategories.map((c) => (
-            <button type="button" key={c} className={`cat-filter-item ${category === c ? "active" : ""}`} onClick={() => setCategory(c)}>
-              {c}
-            </button>
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Brand" defaultOpen icon={<ShieldCheck size={14} />}>
-        <div className="pill-wrap">
-          {availableBrands.map((b) => (
-            <CheckPill key={b} label={b} active={brands.includes(b)} onClick={() => toggle(setBrands, b)} />
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Price Range" defaultOpen icon={<Star size={14} />}>
-        <div className="price-slider-wrap">
-          <input
-            type="range"
-            min={1000}
-            max={220000}
-            step={1000}
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(Number(e.target.value))}
-            className="price-slider"
+    <FilterSection
+      title="Brand"
+      icon={<ShieldCheck size={14} />}
+    >
+      <div className="pill-wrap">
+        {availableBrands.map((b) => (
+          <CheckPill
+            key={b}
+            label={b}
+            active={brands.includes(b)}
+            onClick={() => toggle(setBrands, b)}
           />
-          <div className="price-slider-labels">
-            <span>₹1,000</span>
-            <span className="price-current">Up to ₹{maxPrice.toLocaleString("en-IN")}</span>
-          </div>
-        </div>
-      </FilterSection>
+        ))}
+      </div>
+    </FilterSection>
 
-      <FilterSection title="Specifications" icon={<Cpu size={14} />}>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><Cpu size={12} /> Processor</span>
-          <div className="pill-wrap">
-            {filterGroups.processor.map((v) => (
-              <CheckPill key={v} label={v} active={processor.includes(v)} onClick={() => toggle(setProcessor, v)} />
-            ))}
-          </div>
-        </div>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><MemoryStick size={12} /> RAM</span>
-          <div className="pill-wrap">
-            {filterGroups.ram.map((v) => (
-              <CheckPill key={v} label={v} active={ram.includes(v)} onClick={() => toggle(setRam, v)} />
-            ))}
-          </div>
-        </div>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><HardDrive size={12} /> Storage</span>
-          <div className="pill-wrap">
-            {filterGroups.storage.map((v) => (
-              <CheckPill key={v} label={v} active={storage.includes(v)} onClick={() => toggle(setStorage, v)} />
-            ))}
-          </div>
-        </div>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><MonitorSmartphone size={12} /> Graphics</span>
-          <div className="pill-wrap">
-            {filterGroups.graphics.map((v) => (
-              <CheckPill key={v} label={v} active={graphics.includes(v)} onClick={() => toggle(setGraphics, v)} />
-            ))}
-          </div>
-        </div>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><Layers size={12} /> Operating System</span>
-          <div className="pill-wrap">
-            {filterGroups.os.map((v) => (
-              <CheckPill key={v} label={v} active={os.includes(v)} onClick={() => toggle(setOs, v)} />
-            ))}
-          </div>
-        </div>
-        <div className="spec-filter-group">
-          <span className="sfg-label"><MonitorSmartphone size={12} /> Screen Size</span>
-          <div className="pill-wrap">
-            {filterGroups.screen.map((v) => (
-              <CheckPill key={v} label={v} active={screen.includes(v)} onClick={() => toggle(setScreen, v)} />
-            ))}
-          </div>
-        </div>
-      </FilterSection>
+    <FilterSection
+  title="Price"
+  icon={<Star size={14} />}
+>
+  <div className="price-slider-wrap">
 
-      <FilterSection title="Availability" icon={<PackageCheck size={14} />}>
-        <div className="pill-wrap">
-          {filterGroups.availability.map((v) => (
-            <CheckPill key={v} label={v} active={availability.includes(v)} onClick={() => toggle(setAvailability, v)} />
-          ))}
-        </div>
-      </FilterSection>
+    <input
+      type="range"
+      min={1000}
+      max={220000}
+      step={1000}
+      value={maxPrice}
+      onChange={(e) =>
+        setMaxPrice(Number(e.target.value))
+      }
+      className="price-slider"
+    />
 
-      <FilterSection title="Offer" icon={<Star size={14} />}>
-        <div className="pill-wrap">
-          {filterGroups.offer.map((v) => (
-            <CheckPill key={v} label={v} active={offer.includes(v)} onClick={() => toggle(setOffer, v)} />
-          ))}
-        </div>
-      </FilterSection>
-    </>
-  );
+    <div className="price-slider-labels">
+      <span>₹1,000</span>
 
-  const waLink = (name: string) => `https://wa.me/910000000000?text=${encodeURIComponent(`Hi, I'd like to enquire about the ${name}.`)}`;
+      <span className="price-current">
+        Up to ₹{maxPrice.toLocaleString("en-IN")}
+      </span>
+    </div>
+
+    <div className="pill-wrap">
+
+      <CheckPill
+        label="Under ₹20,000"
+        active={maxPrice === 20000}
+        onClick={() => setMaxPrice(20000)}
+      />
+
+      <CheckPill
+        label="₹20,000 - ₹40,000"
+        active={maxPrice === 40000}
+        onClick={() => setMaxPrice(40000)}
+      />
+
+      <CheckPill
+        label="₹40,000 - ₹60,000"
+        active={maxPrice === 60000}
+        onClick={() => setMaxPrice(60000)}
+      />
+
+      <CheckPill
+        label="₹60,000 - ₹80,000"
+        active={maxPrice === 80000}
+        onClick={() => setMaxPrice(100000)}
+      />
+      <CheckPill
+        label="₹80,000 - ₹1,00,000"
+        active={maxPrice === 100000}
+        onClick={() => setMaxPrice(100000)}
+      />
+
+      <CheckPill
+        label="Above ₹1,00,000"
+        active={maxPrice === 220000}
+        onClick={() => setMaxPrice(220000)}
+      />
+
+    </div>
+  </div>
+</FilterSection>
+
+    <FilterSection
+  title="Specialization"
+  icon={<Cpu size={14} />}
+>
+  {/* Processor */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <Cpu size={12} />
+      Processor
+    </span>
+
+    <div className="pill-wrap">
+      {filterGroups.processor.map((v) => (
+        <CheckPill
+          key={v}
+          label={v}
+          active={processor.includes(v)}
+          onClick={() => toggle(setProcessor, v)}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* RAM */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <MemoryStick size={12} />
+      RAM
+    </span>
+
+    <div className="pill-wrap">
+      {filterGroups.ram.map((v) => (
+        <CheckPill
+          key={v}
+          label={v}
+          active={ram.includes(v)}
+          onClick={() => toggle(setRam, v)}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* Storage */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <HardDrive size={12} />
+      Storage
+    </span>
+
+    <div className="pill-wrap">
+      {filterGroups.storage.map((v) => (
+        <CheckPill
+          key={v}
+          label={v}
+          active={storage.includes(v)}
+          onClick={() => toggle(setStorage, v)}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* Graphics / GPU */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <Cpu size={12} />
+      Graphics / GPU
+    </span>
+
+    <div className="pill-wrap">
+      {filterGroups.graphics.map((v) => (
+        <CheckPill
+          key={v}
+          label={v}
+          active={graphics.includes(v)}
+          onClick={() => toggle(setGraphics, v)}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* Operating System */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <Cpu size={12} />
+      Operating System
+    </span>
+
+    <div className="pill-wrap">
+      {filterGroups.os.map((v) => (
+        <CheckPill
+          key={v}
+          label={v}
+          active={os.includes(v)}
+          onClick={() => toggle(setOs, v)}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* Display Size */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <MonitorSmartphone size={12} />
+      Display Size
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        11"–13"
+      </button>
+
+      <button type="button" className="check-pill">
+        14"
+      </button>
+
+      <button type="button" className="check-pill">
+        15.6"
+      </button>
+
+      <button type="button" className="check-pill">
+        16"
+      </button>
+
+      <button type="button" className="check-pill">
+        17"+
+      </button>
+    </div>
+  </div>
+
+  {/* Display Resolution */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <MonitorSmartphone size={12} />
+      Display Resolution
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        HD
+      </button>
+
+      <button type="button" className="check-pill">
+        Full HD
+      </button>
+
+      <button type="button" className="check-pill">
+        2K
+      </button>
+
+      <button type="button" className="check-pill">
+        2.5K
+      </button>
+
+      <button type="button" className="check-pill">
+        4K
+      </button>
+    </div>
+  </div>
+
+  {/* Refresh Rate */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <MonitorSmartphone size={12} />
+      Refresh Rate
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        60Hz
+      </button>
+
+      <button type="button" className="check-pill">
+        90Hz
+      </button>
+
+      <button type="button" className="check-pill">
+        120Hz
+      </button>
+
+      <button type="button" className="check-pill">
+        144Hz
+      </button>
+
+      <button type="button" className="check-pill">
+        165Hz
+      </button>
+
+      <button type="button" className="check-pill">
+        240Hz+
+      </button>
+    </div>
+  </div>
+
+  {/* Display Type */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      <MonitorSmartphone size={12} />
+      Display Type
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        LED
+      </button>
+
+      <button type="button" className="check-pill">
+        IPS
+      </button>
+
+      <button type="button" className="check-pill">
+        OLED
+      </button>
+
+      <button type="button" className="check-pill">
+        AMOLED
+      </button>
+
+      <button type="button" className="check-pill">
+        Touchscreen
+      </button>
+    </div>
+  </div>
+
+  {/* Connectivity */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Connectivity
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Wi-Fi
+      </button>
+
+      <button type="button" className="check-pill">
+        Wi-Fi 6
+      </button>
+
+      <button type="button" className="check-pill">
+        Wi-Fi 6E
+      </button>
+
+      <button type="button" className="check-pill">
+        Bluetooth
+      </button>
+
+      <button type="button" className="check-pill">
+        Ethernet
+      </button>
+
+      <button type="button" className="check-pill">
+        5G
+      </button>
+    </div>
+  </div>
+
+  {/* Ports */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Ports
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        USB-A
+      </button>
+
+      <button type="button" className="check-pill">
+        USB-C
+      </button>
+
+      <button type="button" className="check-pill">
+        Thunderbolt
+      </button>
+
+      <button type="button" className="check-pill">
+        HDMI
+      </button>
+
+      <button type="button" className="check-pill">
+        DisplayPort
+      </button>
+
+      <button type="button" className="check-pill">
+        Ethernet
+      </button>
+
+      <button type="button" className="check-pill">
+        Audio Jack
+      </button>
+
+      <button type="button" className="check-pill">
+        SD Card Reader
+      </button>
+    </div>
+  </div>
+
+  {/* Keyboard */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Keyboard
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Backlit Keyboard
+      </button>
+
+      <button type="button" className="check-pill">
+        RGB Keyboard
+      </button>
+
+      <button type="button" className="check-pill">
+        Numeric Keypad
+      </button>
+
+      <button type="button" className="check-pill">
+        Spill Resistant
+      </button>
+    </div>
+  </div>
+
+  {/* Camera */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Camera
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        HD Webcam
+      </button>
+
+      <button type="button" className="check-pill">
+        Full HD Webcam
+      </button>
+
+      <button type="button" className="check-pill">
+        IR Camera
+      </button>
+
+      <button type="button" className="check-pill">
+        Privacy Shutter
+      </button>
+    </div>
+  </div>
+
+  {/* Security */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Security
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Fingerprint
+      </button>
+
+      <button type="button" className="check-pill">
+        Face Unlock
+      </button>
+
+      <button type="button" className="check-pill">
+        TPM
+      </button>
+
+      <button type="button" className="check-pill">
+        Privacy Shutter
+      </button>
+
+      <button type="button" className="check-pill">
+        Kensington Lock
+      </button>
+    </div>
+  </div>
+
+  {/* Battery */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Battery
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Up to 4 Hours
+      </button>
+
+      <button type="button" className="check-pill">
+        4–6 Hours
+      </button>
+
+      <button type="button" className="check-pill">
+        6–8 Hours
+      </button>
+
+      <button type="button" className="check-pill">
+        8–12 Hours
+      </button>
+
+      <button type="button" className="check-pill">
+        12+ Hours
+      </button>
+    </div>
+  </div>
+
+  {/* Form Factor */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Form Factor
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Standard Laptop
+      </button>
+
+      <button type="button" className="check-pill">
+        Thin & Light
+      </button>
+
+      <button type="button" className="check-pill">
+        2-in-1
+      </button>
+
+      <button type="button" className="check-pill">
+        Convertible
+      </button>
+
+      <button type="button" className="check-pill">
+        Workstation
+      </button>
+
+      <button type="button" className="check-pill">
+        Mini PC
+      </button>
+
+      <button type="button" className="check-pill">
+        Desktop Tower
+      </button>
+
+      <button type="button" className="check-pill">
+        All-in-One
+      </button>
+    </div>
+  </div>
+
+  {/* Weight */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Weight
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        Under 1.5 kg
+      </button>
+
+      <button type="button" className="check-pill">
+        1.5–2 kg
+      </button>
+
+      <button type="button" className="check-pill">
+        2–2.5 kg
+      </button>
+
+      <button type="button" className="check-pill">
+        Above 2.5 kg
+      </button>
+    </div>
+  </div>
+
+  {/* Warranty */}
+  <div className="spec-filter-group">
+    <span className="sfg-label">
+      Warranty
+    </span>
+
+    <div className="pill-wrap">
+      <button type="button" className="check-pill">
+        1 Year
+      </button>
+
+      <button type="button" className="check-pill">
+        2 Years
+      </button>
+
+      <button type="button" className="check-pill">
+        3 Years
+      </button>
+
+      <button type="button" className="check-pill">
+        Extended Warranty
+      </button>
+    </div>
+  </div>
+</FilterSection>
+
+    <FilterSection
+  title="Rating"
+  icon={<Star size={14} />}
+>
+  <div className="pill-wrap">
+    <button type="button" className="check-pill">
+      ★ 5 Star
+    </button>
+
+    <button type="button" className="check-pill">
+      ★ 4.5 & Above
+    </button>
+
+    <button type="button" className="check-pill">
+      ★ 4.0 & Above
+    </button>
+
+    <button type="button" className="check-pill">
+      ★ 3.0 & Above
+    </button>
+
+    <button type="button" className="check-pill">
+      Top Rated
+    </button>
+
+    <button type="button" className="check-pill">
+      Most Reviewed
+    </button>
+  </div>
+</FilterSection>
+
+    <FilterSection
+  title="Offers & Discounts"
+  icon={<Star size={14} />}
+>
+  <div className="pill-wrap">
+    <CheckPill
+      label="Today's Deal"
+      active={offer.includes("Today's Deal")}
+      onClick={() => toggle(setOffer, "Today's Deal")}
+    />
+
+    <CheckPill
+      label="Special Offer"
+      active={offer.includes("Special Offer")}
+      onClick={() => toggle(setOffer, "Special Offer")}
+    />
+
+    <CheckPill
+      label="Best Seller"
+      active={offer.includes("Best Seller")}
+      onClick={() => toggle(setOffer, "Best Seller")}
+    />
+
+    <CheckPill
+      label="Festival Offer"
+      active={offer.includes("Festival Offer")}
+      onClick={() => toggle(setOffer, "Festival Offer")}
+    />
+
+    <CheckPill
+      label="Cashback Available"
+      active={offer.includes("Cashback Available")}
+      onClick={() => toggle(setOffer, "Cashback Available")}
+    />
+
+    <CheckPill
+      label="Exchange Offer"
+      active={offer.includes("Exchange Offer")}
+      onClick={() => toggle(setOffer, "Exchange Offer")}
+    />
+
+    <CheckPill
+      label="No Cost EMI"
+      active={offer.includes("No Cost EMI")}
+      onClick={() => toggle(setOffer, "No Cost EMI")}
+    />
+  </div>
+</FilterSection>
+
+    <FilterSection
+  title="Payment Mode"
+  icon={<FileText size={14} />}
+>
+  <div className="pill-wrap">
+    <button type="button" className="check-pill">
+      Cash
+    </button>
+
+    <button type="button" className="check-pill">
+      UPI
+    </button>
+
+    <button type="button" className="check-pill">
+      Credit Card
+    </button>
+
+    <button type="button" className="check-pill">
+      Debit Card
+    </button>
+
+    <button type="button" className="check-pill">
+      EMI
+    </button>
+
+    <button type="button" className="check-pill">
+      Net Banking
+    </button>
+
+    <button type="button" className="check-pill">
+      Pay Later
+    </button>
+  </div>
+</FilterSection>
+
+    <FilterSection
+  title="Usage"
+  icon={<MonitorSmartphone size={14} />}
+>
+  <div className="pill-wrap">
+    <button type="button" className="check-pill">
+      Home
+    </button>
+
+    <button type="button" className="check-pill">
+      Office
+    </button>
+
+    <button type="button" className="check-pill">
+      Business
+    </button>
+
+    <button type="button" className="check-pill">
+      Gaming
+    </button>
+
+    <button type="button" className="check-pill">
+      Student
+    </button>
+
+    <button type="button" className="check-pill">
+      Professional
+    </button>
+
+    <button type="button" className="check-pill">
+      Enterprise
+    </button>
+  </div>
+</FilterSection>
+  </>
+);
+
+  const waLink = (name: string) => `https://wa.me/919826828666?text=${encodeURIComponent(`Hi, I'd like to enquire about the ${name}.`)}`;
 
   return (
     <section className="products-section" id="products">
@@ -347,12 +1161,7 @@ export default function FeaturedProducts() {
       </div>
 
       <div className="products-header reveal">
-        <span className="section-eyebrow">Product Showcase</span>
-        <h2 className="section-title">Premium <span className="grad-text">Product Collection</span></h2>
-        <p className="section-subtitle">
-          Explore genuine laptops, desktops, workstations, printers, networking products and accessories from globally trusted technology brands.
-        </p>
-      </div>
+            </div>
 
       <div className="products-search-wrap reveal">
         <div className="products-search-bar">
@@ -383,28 +1192,96 @@ export default function FeaturedProducts() {
             </span>
 
             <div className={`sort-select ${isSortOpen ? "open" : ""}`}>
-              <button type="button" className="sort-trigger" onClick={() => setIsSortOpen((o) => !o)}>
-                Sort By: <b>{sortBy}</b>
-                <ChevronDown size={14} />
-              </button>
-              {isSortOpen && (
-                <div className="sort-menu">
-                  {sortOptions.map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      className={`sort-option ${sortBy === s ? "active" : ""}`}
-                      onClick={() => {
-                        setSortBy(s);
-                        setIsSortOpen(false);
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+
+  {!isSortOpen ? (
+    <button
+      type="button"
+      className="sort-trigger"
+      onClick={() => setIsSortOpen(true)}
+    >
+      Sort By: <b>{sortBy}</b>
+      <ChevronDown size={14} />
+    </button>
+  ) : (
+    <div className="sort-menu">
+
+      <span className="sort-label">
+        Sort by:
+      </span>
+
+      <span className="sort-dot">
+        •
+      </span>
+      
+      <button
+  type="button"
+  className={`sort-option ${
+    sortBy === "Latest" ? "active" : ""
+  }`}
+  onClick={() => {
+    setSortBy("Latest");
+    setIsSortOpen(false);
+  }}
+>
+  Latest
+</button>
+
+<button
+  type="button"
+  className={`sort-option ${
+    sortBy === "Popularity" ? "active" : ""
+  }`}
+  onClick={() => {
+    setSortBy("Popularity");
+    setIsSortOpen(false);
+  }}
+>
+  Popular
+</button>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Price Low to High" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Price Low to High");
+          setIsSortOpen(false);
+        }}
+      >
+        Price Low - High
+      </button>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Price High to Low" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Price High to Low");
+          setIsSortOpen(false);
+        }}
+      >
+        Price High - Low
+      </button>
+
+      <button
+        type="button"
+        className={`sort-option ${
+          sortBy === "Today's Deal" ? "active" : ""
+        }`}
+        onClick={() => {
+          setSortBy("Today's Deal");
+          setIsSortOpen(false);
+        }}
+      >
+        Today's Deal
+      </button>
+
+    </div>
+  )}
+
+</div>
           </div>
 
           <div className="products-grid">
@@ -436,7 +1313,7 @@ export default function FeaturedProducts() {
                     <ProductImage src={p.image} alt={p.name} />
                     <div className="pc-media-sheen"></div>
                     <div className="pc-badges">
-                      {[...p.offers, ...p.tags].slice(0, 3).map((t) => (
+                      {uniqueBadges(p.offers, p.tags, 3).map((t) => (
                         <span className="pc-badge" key={t}>
                           {badgeIcon[t]}
                           {t}
@@ -533,7 +1410,7 @@ export default function FeaturedProducts() {
               <p className="pm-desc">{activeProduct.description}</p>
 
               <div className="pm-badges">
-                {[...activeProduct.offers, ...activeProduct.tags].map((t) => (
+                {uniqueBadges(activeProduct.offers, activeProduct.tags).map((t) => (
                   <span className="pc-badge" key={t}>
                     {badgeIcon[t]}
                     {t}

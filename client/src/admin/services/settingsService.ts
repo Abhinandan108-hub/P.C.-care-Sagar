@@ -1,10 +1,10 @@
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import type { SiteSettings, SiteSettingsFormValues } from "../types/settings";
 
 const TABLE = "site_settings";
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const { data, error } = await supabase.from(TABLE).select("*").eq("id", 1).single();
+  const { data, error } = await adminClient.from(TABLE).select("*").eq("id", 1).single();
   if (error) throw error;
   return data as SiteSettings;
 }
@@ -35,7 +35,7 @@ export async function updateSiteSettings(
     copyright_text: values.copyright_text.trim(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .upsert(payload, { onConflict: "id" })
     .select("*")

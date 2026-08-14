@@ -19,8 +19,8 @@ export default function PlaceholderPage({ title, description, icon: Icon }: Plac
         <Icon />
         <h3>{title} module coming soon</h3>
         <p>
-          This section is scaffolded and ready — connect it to your Supabase
-          tables to start managing {title.toLowerCase()}.
+          This section is scaffolded and ready — connect it to your data
+          tables or backend to start managing {title.toLowerCase()}.
         </p>
       </div>
     </>

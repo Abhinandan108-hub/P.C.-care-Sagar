@@ -10,7 +10,7 @@ interface SearchBarProps {
 }
 
 /** Instant-feeling search: local state updates immediately, parent state
- * (which triggers the Supabase query) updates after a short debounce. */
+ * (which triggers the backend query) updates after a short debounce. */
 export default function SearchBar({
   value,
   onChange,

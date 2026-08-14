@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabaseClient";
+import { adminClient } from "../lib/adminClient";
 import type {
   NamedOption,
   Product,
@@ -18,10 +18,10 @@ export interface GetProductsResult {
 export async function getProducts(
   filters: ProductFilters
 ): Promise<GetProductsResult> {
-  let query = supabase.from(TABLE).select("*", { count: "exact" });
+  let query = adminClient.from(TABLE).select("*", { count: "exact" });
 
   if (filters.search.trim()) {
-    // Supabase's .or() filter uses commas as separators, so strip them from
+    // The .or() filter uses commas as separators, so strip them from
     // the raw search term to avoid breaking the query syntax.
     const term = filters.search.trim().replace(/,/g, " ");
     query = query.or(
@@ -76,7 +76,7 @@ export async function getProducts(
 }
 
 export async function getProductById(id: string): Promise<Product> {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .select("*")
     .eq("id", id)
@@ -119,7 +119,7 @@ function toDbPayload(values: ProductFormValues) {
 
 export async function createProduct(values: ProductFormValues): Promise<Product> {
   const payload = toDbPayload(values);
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .insert(payload)
     .select("*")
@@ -134,7 +134,7 @@ export async function updateProduct(
   values: ProductFormValues
 ): Promise<Product> {
   const payload = toDbPayload(values);
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from(TABLE)
     .update(payload)
     .eq("id", id)
@@ -145,7 +145,7 @@ export async function updateProduct(
   return data as Product;
 }
 
-/** Extract the storage object path from a Supabase public URL. */
+/** Extract the storage object path from a public storage URL. */
 function pathFromPublicUrl(url: string): string | null {
   const marker = `/storage/v1/object/public/${BUCKET}/`;
   const idx = url.indexOf(marker);
@@ -160,7 +160,7 @@ async function deleteImagesFromStorage(urls: string[]) {
 
   if (paths.length === 0) return;
 
-  const { error } = await supabase.storage.from(BUCKET).remove(paths);
+  const { error } = await adminClient.storage.from(BUCKET).remove(paths);
   // Don't fail the whole delete flow if a storage object was already gone.
   if (error) {
     // eslint-disable-next-line no-console
@@ -169,7 +169,7 @@ async function deleteImagesFromStorage(urls: string[]) {
 }
 
 export async function deleteProduct(product: Product): Promise<void> {
-  const { error } = await supabase.from(TABLE).delete().eq("id", product.id);
+  const { error } = await adminClient.from(TABLE).delete().eq("id", product.id);
   if (error) throw error;
 
   const allImages = [
@@ -180,7 +180,7 @@ export async function deleteProduct(product: Product): Promise<void> {
 }
 
 export async function getCategories(): Promise<NamedOption[]> {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from("categories")
     .select("id, name")
     .order("name", { ascending: true });
@@ -190,7 +190,7 @@ export async function getCategories(): Promise<NamedOption[]> {
 }
 
 export async function getBrands(): Promise<NamedOption[]> {
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from("brands")
     .select("id, name")
     .order("name", { ascending: true });
