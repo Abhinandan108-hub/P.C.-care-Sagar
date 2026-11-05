@@ -14,7 +14,17 @@ const router = Router();
 
 router.post(
   "/",
-  [body("name").trim().notEmpty().withMessage("Name is required"), body("message").trim().notEmpty().withMessage("Message is required")],
+  [
+    body("name").isString().trim().notEmpty().isLength({ max: 100 }).withMessage("Name is required"),
+    body("email").optional({ nullable: true }).isEmail(),
+    body("phone").optional({ nullable: true }).isString().trim().matches(/^[0-9+()\-\s]{7,20}$/),
+    body("company").optional({ nullable: true }).isString().isLength({ max: 150 }),
+    body("subject").optional({ nullable: true }).isString().isLength({ max: 200 }),
+    body("message").isString().trim().notEmpty().isLength({ max: 3000 }).withMessage("Message is required"),
+    body("product_id").optional({ nullable: true }).isString().isLength({ max: 100 }),
+    body("product_name").optional({ nullable: true }).isString().isLength({ max: 200 }),
+    body("contactMethod").optional({ nullable: true }).isIn(["Phone", "WhatsApp", "Email"]),
+  ],
   validateRequest,
   createEnquiry
 );

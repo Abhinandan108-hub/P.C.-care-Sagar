@@ -1,11 +1,31 @@
 import { Request, Response } from "express";
 import Enquiry from "../models/Enquiry";
+import Settings from "../models/Settings";
 import { sendEmail } from "../utils/mail";
+import { parseReportDateRange } from "../utils/reporting";
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export async function createEnquiry(req: Request, res: Response) {
-  const enquiry = await Enquiry.create(req.body);
+  const enquiry = await Enquiry.create({
+    name: String(req.body.name).trim(),
+    email: req.body.email || null,
+    phone: req.body.phone || null,
+    company: req.body.company || null,
+    subject: req.body.subject || null,
+    message: String(req.body.message).trim(),
+    product_id: req.body.product_id || null,
+    product_name: req.body.product_name || null,
+    contactMethod: req.body.contactMethod || null,
+    status: "new",
+  });
 
-  const notificationEmail = process.env.ENQUIRY_NOTIFICATION_EMAIL || "pccaresagar@yahoo.com";
+  const settings = await Settings.findOne().select("email");
+  const notificationEmail = settings?.email ||
+    process.env.ENQUIRY_NOTIFICATION_EMAIL ||
+    "abhinandansoni100@gmail.com";
   const subject = `New enquiry from ${enquiry.name}`;
   const bodyLines = [
     `Name: ${enquiry.name}`,
@@ -36,9 +56,13 @@ export async function createEnquiry(req: Request, res: Response) {
 }
 
 export async function getEnquiries(req: Request, res: Response) {
-  const query: any = {};
-  if (req.query.search) {
-    const term = String(req.query.search);
+  const query: Record<string, unknown> = {};
+  if (req.query.search !== undefined) {
+    if (typeof req.query.search !== "string" || req.query.search.trim().length > 100) {
+      return res.status(400).json({ success: false, message: "search must be a string of at most 100 characters" });
+    }
+    const term = escapeRegex(req.query.search.trim());
+    if (!term) return res.status(400).json({ success: false, message: "search cannot be empty" });
     query.$or = [
       { name: new RegExp(term, "i") },
       { email: new RegExp(term, "i") },
@@ -46,18 +70,32 @@ export async function getEnquiries(req: Request, res: Response) {
       { message: new RegExp(term, "i") },
     ];
   }
-  if (req.query.status) query.status = req.query.status;
-  if (req.query.dateFrom) query.createdAt = { ...query.createdAt, $gte: new Date(`${req.query.dateFrom}T00:00:00`) };
-  if (req.query.dateTo) query.createdAt = { ...query.createdAt, $lte: new Date(`${req.query.dateTo}T23:59:59`) };
+  if (req.query.status !== undefined) {
+    if (req.query.status !== "new" && req.query.status !== "read") {
+      return res.status(400).json({ success: false, message: "status must be new or read" });
+    }
+    query.status = req.query.status;
+  }
+  if (req.query.dateFrom !== undefined || req.query.dateTo !== undefined) {
+    const range = parseReportDateRange(req.query.dateFrom, req.query.dateTo);
+    if (!range) return res.status(400).json({ success: false, message: "Invalid enquiry date range" });
+    query.createdAt = { $gte: range.from, $lt: range.to };
+  }
 
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 20;
+  if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    return res.status(400).json({ success: false, message: "Invalid page or pageSize" });
+  }
   const skip = (page - 1) * pageSize;
 
   const enquiries = await Enquiry.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
   const totalCount = await Enquiry.countDocuments(query);
 
-  return res.status(200).json({ success: true, data: { enquiries, totalCount } });
+  return res.status(200).json({
+    success: true,
+    data: { enquiries, totalCount, page, pageSize, totalPages: Math.ceil(totalCount / pageSize) },
+  });
 }
 
 export async function getEnquiryById(req: Request, res: Response) {

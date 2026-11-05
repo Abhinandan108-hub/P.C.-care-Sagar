@@ -35,4 +35,6 @@ const enquirySchema = new Schema<IEnquiry>(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+enquirySchema.index({ status: 1, createdAt: -1 });
+
 export default model<IEnquiry>("Enquiry", enquirySchema);
